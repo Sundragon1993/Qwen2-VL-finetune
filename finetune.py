@@ -8,17 +8,19 @@ from torch.utils.data import Dataset
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from functools import partial
-
+from datasets import load_dataset
+from PIL import Image
 from util.vision_util import process_vision_info
 from util.logutil import init_logger, get_logger
 
-output_dir = f'train_output/{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}/'
+output_dir = f'train_output_v2/{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}/'
 init_logger(output_dir)
 logger = get_logger()
 
 device = "cuda"
 
-class ToyDataSet(Dataset): # for toy demo
+
+class ToyDataSet(Dataset):  # for toy demo
     def __init__(self, data_path):
         super().__init__()
         with open(data_path, "r") as f:
@@ -29,7 +31,94 @@ class ToyDataSet(Dataset): # for toy demo
 
     def __getitem__(self, idx):
         return self.data[idx]
-    
+
+
+# Load dataset from Hugging Face
+data = load_dataset("Trelis/chess_pieces")
+
+# Optionally, check dataset sizes
+train_shape = len(data['train'])
+test_shape = len(data['test'])
+logger.info(f"Training set size: {train_shape}, Test set size: {test_shape}")
+
+
+class HuggingFaceDataset(torch.utils.data.Dataset):
+    def __init__(self, split):
+        self.dataset = data[split]  # Load train/test split
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        # Assuming images and text are fields in the dataset, adjust accordingly
+        example = self.dataset[idx]
+        return {
+            "messages": [
+                {'role': 'user', 'content': [{'type': 'image', 'image': example['image']},
+                                             {'type': 'text', 'text': 'What kind of chess pieces in this picture?'}]},
+                {'role': 'assistant', 'content': [{'type': 'text', 'text': example['caption']}]}
+            ]
+        }
+
+
+class LocalDataset(Dataset):
+    def __init__(self, root_dir, transform=None):
+        """
+        Args:
+            root_dir (string): Directory with subfolders, each containing image-caption pairs.
+            processor (transformers AutoProcessor): Processor for tokenizing text and handling images.
+            transform (callable, optional): Optional transform to be applied to images (if needed).
+        """
+        self.root_dir = root_dir
+        self.transform = transform
+        self.image_paths = []
+        self.captions = []
+
+        # Traverse through all folders and gather image-caption pairs
+        for folder in os.listdir(root_dir):
+            folder_path = os.path.join(root_dir, folder)
+            if os.path.isdir(folder_path):
+                for file in os.listdir(folder_path):
+                    if file.endswith('.txt'):
+                        # txt_path = os.path.join(folder_path, file)
+                        # img_path = txt_path.replace('.txt', '.jpg')  # Assuming image format is .jpg
+                        # if os.path.exists(img_path):
+                        #     with open(txt_path, 'r', encoding='utf-8') as f:
+                        #         caption = f.read().strip()
+                        #     self.image_paths.append(img_path)
+                        #     self.captions.append(caption)
+                        txt_path = os.path.join(folder_path, file)
+                        img_path_jpg = txt_path.replace('.txt', '.jpg')
+                        img_path_png = txt_path.replace('.txt', '.png')
+
+                        if os.path.exists(img_path_jpg):
+                            img_path = img_path_jpg
+                        elif os.path.exists(img_path_png):
+                            img_path = img_path_png
+                        else:
+                            continue
+
+                        with open(txt_path, 'r', encoding='utf-8') as f:
+                            caption = f.read().strip()
+                        self.image_paths.append(img_path)
+                        self.captions.append(caption)
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_path = self.image_paths[idx]
+        caption = self.captions[idx]
+        return {
+            "messages": [
+                {'role': 'user', 'content': [{'type': 'image', 'image': img_path},
+                                             {'type': 'text',
+                                              'text': 'What would you caption the character in this picture?'}]},
+                {'role': 'assistant', 'content': [{'type': 'text', 'text': caption}]}
+            ]
+        }
+
+
 def find_assistant_content_sublist_indexes(l):
     '''
     A message from train_data/data.json may look like below:
@@ -65,6 +154,7 @@ def find_assistant_content_sublist_indexes(l):
 
     return list(zip(start_indexes, end_indexes))
 
+
 def collate_fn(batch, processor, device):
     # (Pdb++) processor.tokenizer.encode("<|im_start|>assistant")
     # [151644, 77091]
@@ -91,7 +181,9 @@ def collate_fn(batch, processor, device):
     for ids_list in input_ids_lists:
         label_ids = [-100] * len(ids_list)
         for begin_end_indexs in find_assistant_content_sublist_indexes(ids_list):
-            label_ids[begin_end_indexs[0]+2:begin_end_indexs[1]+1] = ids_list[begin_end_indexs[0]+2:begin_end_indexs[1]+1]
+            label_ids[begin_end_indexs[0] + 2:begin_end_indexs[1] + 1] = ids_list[
+                                                                         begin_end_indexs[0] + 2:begin_end_indexs[
+                                                                                                     1] + 1]
         labels_list.append(label_ids)
 
     labels_ids = torch.tensor(labels_list, dtype=torch.int64)
@@ -117,6 +209,7 @@ def write_chat_template(processor, output_dir):
         writer.write(chat_template_json_string)
         logger.info(f"chat template saved in {output_chat_template_file}")
 
+
 def train():
     # Load the model on the available device(s)
     # We recommend enabling flash_attention_2 for better acceleration and memory saving, especially in multi-image and video scenarios.
@@ -131,7 +224,8 @@ def train():
     #   Unrecognized keys in `rope_scaling` for 'rope_type'='default': {'mrope_section'}"
     # It is a issue, see https://github.com/huggingface/transformers/issues/33401
     model = Qwen2VLForConditionalGeneration.from_pretrained(
-        "Qwen/Qwen2-VL-2B-Instruct", torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2", device_map="auto"
+        "Qwen/Qwen2-VL-2B-Instruct", torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2",
+        device_map="auto"
     )
 
     # (Pdb++) model
@@ -207,15 +301,25 @@ def train():
     # https://github.com/huggingface/transformers/pull/26572
     # https://github.com/pytorch/pytorch/issues/110213
     # transformers/models/qwen2_vl/modeling_qwen2_vl.py: causal_mask = AttentionMaskConverter._unmask_unattended(causal_mask, min_dtype)
-    
-    processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct", min_pixels=256*28*28, max_pixels=512*28*28, padding_side="right")
 
-    train_loader = DataLoader(
-        ToyDataSet("train_data/data.json"),
-        batch_size=1,
-        collate_fn=partial(collate_fn, processor=processor, device=device)
-    )
+    processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct", min_pixels=256 * 28 * 28,
+                                              max_pixels=512 * 28 * 28, padding_side="right")
 
+    # train_loader = DataLoader(
+    #     ToyDataSet("test_data/data.json"),
+    #     batch_size=1,
+    #     collate_fn=partial(collate_fn, processor=processor, device=device)
+    # )
+
+    train_dataset = LocalDataset(root_dir="/home/admin/finetune-Qwen2-VL/VLM")
+    train_loader = DataLoader(train_dataset, batch_size=1,
+                              collate_fn=partial(collate_fn, processor=processor, device=device))
+
+    # train_loader = DataLoader(
+    #     HuggingFaceDataset('train'),
+    #     batch_size=1,
+    #     collate_fn=partial(collate_fn, processor=processor, device=device)
+    # )
     model.train()
     epochs = 10
     # import pdb
@@ -231,13 +335,14 @@ def train():
             # import pdb
             # pdb.set_trace()
             outputs = model(**inputs, labels=labels)
-            
+
             loss = outputs.loss / NUM_ACCUMULATION_STEPS
             accumulated_avg_loss += loss.item()
             loss.backward()
-            
+
             if steps % NUM_ACCUMULATION_STEPS == 0:
-                logger.info(f"Batch {steps} of epoch {epoch + 1}/{epochs}, average training loss of previous {NUM_ACCUMULATION_STEPS} batches: {accumulated_avg_loss}")
+                logger.info(
+                    f"Batch {steps} of epoch {epoch + 1}/{epochs}, average training loss of previous {NUM_ACCUMULATION_STEPS} batches: {accumulated_avg_loss}")
                 accumulated_avg_loss = 0
                 optimizer.step()
                 optimizer.zero_grad()
@@ -247,6 +352,6 @@ def train():
     processor.save_pretrained(output_dir)
     write_chat_template(processor, output_dir)
 
+
 if __name__ == "__main__":
     train()
-    

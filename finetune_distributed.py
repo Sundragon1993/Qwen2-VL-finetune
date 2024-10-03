@@ -159,7 +159,7 @@ def train():
     processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct", min_pixels=256*28*28, max_pixels=512*28*28, padding_side="right")
 
     train_loader = DataLoader(
-        ToyDataSet("train_data/data.json"),
+        ToyDataSet("test_data/data.json"),
         batch_size=1,
         collate_fn=partial(collate_fn, processor=processor, device=device)
     )

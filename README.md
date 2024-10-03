@@ -68,7 +68,7 @@ Whether it is the official Qwen2-VL 2B model or our fine-tuned or retrained Qwen
 
 For example, the following picture:
 
-<img src="test_data/4.png" width="70%" height="70%">   
+<img src="train_data/4.png" width="70%" height="70%">   
 
 The official Qwen2-VL 2B model describes the result as follows:
 ```
