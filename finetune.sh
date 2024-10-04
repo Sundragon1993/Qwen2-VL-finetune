@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES="3" python finetune.py
+CUDA_VISIBLE_DEVICES="0" python finetune.py

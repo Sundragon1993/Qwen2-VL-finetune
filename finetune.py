@@ -8,115 +8,15 @@ from torch.utils.data import Dataset
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from functools import partial
-from datasets import load_dataset
 from PIL import Image
 from util.vision_util import process_vision_info
 from util.logutil import init_logger, get_logger
+from dataset import LocalDataset, HuggingFaceDataset, ToyDataSet
 
 output_dir = f'train_output_v2/{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}/'
 init_logger(output_dir)
 logger = get_logger()
-
 device = "cuda"
-
-
-class ToyDataSet(Dataset):  # for toy demo
-    def __init__(self, data_path):
-        super().__init__()
-        with open(data_path, "r") as f:
-            self.data = json.load(f)
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        return self.data[idx]
-
-
-# Load dataset from Hugging Face
-data = load_dataset("Trelis/chess_pieces")
-
-# Optionally, check dataset sizes
-train_shape = len(data['train'])
-test_shape = len(data['test'])
-logger.info(f"Training set size: {train_shape}, Test set size: {test_shape}")
-
-
-class HuggingFaceDataset(torch.utils.data.Dataset):
-    def __init__(self, split):
-        self.dataset = data[split]  # Load train/test split
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, idx):
-        # Assuming images and text are fields in the dataset, adjust accordingly
-        example = self.dataset[idx]
-        return {
-            "messages": [
-                {'role': 'user', 'content': [{'type': 'image', 'image': example['image']},
-                                             {'type': 'text', 'text': 'What kind of chess pieces in this picture?'}]},
-                {'role': 'assistant', 'content': [{'type': 'text', 'text': example['caption']}]}
-            ]
-        }
-
-
-class LocalDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
-        """
-        Args:
-            root_dir (string): Directory with subfolders, each containing image-caption pairs.
-            processor (transformers AutoProcessor): Processor for tokenizing text and handling images.
-            transform (callable, optional): Optional transform to be applied to images (if needed).
-        """
-        self.root_dir = root_dir
-        self.transform = transform
-        self.image_paths = []
-        self.captions = []
-
-        # Traverse through all folders and gather image-caption pairs
-        for folder in os.listdir(root_dir):
-            folder_path = os.path.join(root_dir, folder)
-            if os.path.isdir(folder_path):
-                for file in os.listdir(folder_path):
-                    if file.endswith('.txt'):
-                        # txt_path = os.path.join(folder_path, file)
-                        # img_path = txt_path.replace('.txt', '.jpg')  # Assuming image format is .jpg
-                        # if os.path.exists(img_path):
-                        #     with open(txt_path, 'r', encoding='utf-8') as f:
-                        #         caption = f.read().strip()
-                        #     self.image_paths.append(img_path)
-                        #     self.captions.append(caption)
-                        txt_path = os.path.join(folder_path, file)
-                        img_path_jpg = txt_path.replace('.txt', '.jpg')
-                        img_path_png = txt_path.replace('.txt', '.png')
-
-                        if os.path.exists(img_path_jpg):
-                            img_path = img_path_jpg
-                        elif os.path.exists(img_path_png):
-                            img_path = img_path_png
-                        else:
-                            continue
-
-                        with open(txt_path, 'r', encoding='utf-8') as f:
-                            caption = f.read().strip()
-                        self.image_paths.append(img_path)
-                        self.captions.append(caption)
-
-    def __len__(self):
-        return len(self.image_paths)
-
-    def __getitem__(self, idx):
-        img_path = self.image_paths[idx]
-        caption = self.captions[idx]
-        return {
-            "messages": [
-                {'role': 'user', 'content': [{'type': 'image', 'image': img_path},
-                                             {'type': 'text',
-                                              'text': 'What would you caption the character in this picture?'}]},
-                {'role': 'assistant', 'content': [{'type': 'text', 'text': caption}]}
-            ]
-        }
 
 
 def find_assistant_content_sublist_indexes(l):
@@ -211,22 +111,101 @@ def write_chat_template(processor, output_dir):
 
 
 def train():
+    """
     # Load the model on the available device(s)
     # We recommend enabling flash_attention_2 for better acceleration and memory saving, especially in multi-image and video scenarios.
-    # model = Qwen2VLForConditionalGeneration.from_pretrained(
-    #     "Qwen/Qwen2-VL-2B-Instruct",
-    #     torch_dtype=torch.bfloat16,
-    #     attn_implementation="flash_attention_2",
-    #     device_map="auto",
-    # )
-
+    model = Qwen2VLForConditionalGeneration.from_pretrained(
+        "Qwen/Qwen2-VL-2B-Instruct",
+        torch_dtype=torch.bfloat16,
+        attn_implementation="flash_attention_2",
+        device_map="auto",
+    )
     # ** WARNING ** When run below line , we got below warning message:
     #   Unrecognized keys in `rope_scaling` for 'rope_type'='default': {'mrope_section'}"
     # It is a issue, see https://github.com/huggingface/transformers/issues/33401
+    """
     model = Qwen2VLForConditionalGeneration.from_pretrained(
-        "Qwen/Qwen2-VL-2B-Instruct", torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2",
+        "Qwen/Qwen2-VL-7B-Instruct", torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2",
         device_map="auto"
     )
+    # print(model)
+    """
+    Qwen2VLForConditionalGeneration(
+  (visual): Qwen2VisionTransformerPretrainedModel(
+    (patch_embed): PatchEmbed(
+      (proj): Conv3d(3, 1280, kernel_size=(2, 14, 14), stride=(2, 14, 14), bias=False)
+    )
+    (rotary_pos_emb): VisionRotaryEmbedding()
+    (blocks): ModuleList(
+      (0-31): 32 x Qwen2VLVisionBlock(
+        (norm1): LayerNorm((1280,), eps=1e-06, elementwise_affine=True)
+        (norm2): LayerNorm((1280,), eps=1e-06, elementwise_affine=True)
+        (attn): VisionFlashAttention2(
+          (qkv): Linear(in_features=1280, out_features=3840, bias=True)
+          (proj): Linear(in_features=1280, out_features=1280, bias=True)
+        )
+        (mlp): VisionMlp(
+          (fc1): Linear(in_features=1280, out_features=5120, bias=True)
+          (act): QuickGELUActivation()
+          (fc2): Linear(in_features=5120, out_features=1280, bias=True)
+        )
+      )
+    )
+    (merger): PatchMerger(
+      (ln_q): LayerNorm((1280,), eps=1e-06, elementwise_affine=True)
+      (mlp): Sequential(
+        (0): Linear(in_features=5120, out_features=5120, bias=True)
+        (1): GELU(approximate='none')
+        (2): Linear(in_features=5120, out_features=3584, bias=True)
+      )
+    )
+  )
+  (model): Qwen2VLModel(
+    (embed_tokens): Embedding(152064, 3584)
+    (layers): ModuleList(
+      (0-27): 28 x Qwen2VLDecoderLayer(
+        (self_attn): Qwen2VLFlashAttention2(
+          (q_proj): Linear(in_features=3584, out_features=3584, bias=True)
+          (k_proj): Linear(in_features=3584, out_features=512, bias=True)
+          (v_proj): Linear(in_features=3584, out_features=512, bias=True)
+          (o_proj): Linear(in_features=3584, out_features=3584, bias=False)
+          (rotary_emb): Qwen2VLRotaryEmbedding()
+        )
+        (mlp): Qwen2MLP(
+          (gate_proj): Linear(in_features=3584, out_features=18944, bias=False)
+          (up_proj): Linear(in_features=3584, out_features=18944, bias=False)
+          (down_proj): Linear(in_features=18944, out_features=3584, bias=False)
+          (act_fn): SiLU()
+        )
+        (input_layernorm): Qwen2RMSNorm((3584,), eps=1e-06)
+        (post_attention_layernorm): Qwen2RMSNorm((3584,), eps=1e-06)
+      )
+    )
+    (norm): Qwen2RMSNorm((3584,), eps=1e-06)
+    (rotary_emb): Qwen2VLRotaryEmbedding()
+  )
+  (lm_head): Linear(in_features=3584, out_features=152064, bias=False)
+    """
+    from peft import LoraConfig, get_peft_model
+    TARGET_MODULES = [
+        "q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "qkv",
+        "linear", "Conv2d", "fc1", "fc2", "all-linear"
+    ]
+
+    config = LoraConfig(
+        r=128,
+        lora_alpha=128,
+        target_modules=TARGET_MODULES,
+        task_type="CAUSAL_LM",
+        lora_dropout=0.05,
+        bias="none",
+        inference_mode=False,
+        use_rslora=True,
+        init_lora_weights="gaussian",
+    )
+
+    peft_model = get_peft_model(model, config)
+    peft_model.print_trainable_parameters()
 
     # (Pdb++) model
     # Qwen2VLForConditionalGeneration(
@@ -302,11 +281,16 @@ def train():
     # https://github.com/pytorch/pytorch/issues/110213
     # transformers/models/qwen2_vl/modeling_qwen2_vl.py: causal_mask = AttentionMaskConverter._unmask_unattended(causal_mask, min_dtype)
 
-    processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct", min_pixels=256 * 28 * 28,
+    processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct", min_pixels=256 * 28 * 28,
                                               max_pixels=512 * 28 * 28, padding_side="right")
 
     # train_loader = DataLoader(
     #     ToyDataSet("test_data/data.json"),
+    #     batch_size=1,
+    #     collate_fn=partial(collate_fn, processor=processor, device=device)
+    # )
+    # train_loader = DataLoader(
+    #     HuggingFaceDataset('train'),
     #     batch_size=1,
     #     collate_fn=partial(collate_fn, processor=processor, device=device)
     # )
@@ -315,16 +299,11 @@ def train():
     train_loader = DataLoader(train_dataset, batch_size=1,
                               collate_fn=partial(collate_fn, processor=processor, device=device))
 
-    # train_loader = DataLoader(
-    #     HuggingFaceDataset('train'),
-    #     batch_size=1,
-    #     collate_fn=partial(collate_fn, processor=processor, device=device)
-    # )
-    model.train()
+    peft_model.train()
     epochs = 10
     # import pdb
     # pdb.set_trace()
-    optimizer = AdamW(model.parameters(), lr=1e-5)
+    optimizer = AdamW(peft_model.parameters(), lr=1e-5)
     NUM_ACCUMULATION_STEPS = 2
     for epoch in range(epochs):
         accumulated_avg_loss = 0
@@ -348,7 +327,7 @@ def train():
                 optimizer.zero_grad()
 
     os.makedirs(output_dir, exist_ok=True)
-    model.save_pretrained(output_dir)
+    peft_model.save_pretrained(output_dir)
     processor.save_pretrained(output_dir)
     write_chat_template(processor, output_dir)
 

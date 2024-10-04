@@ -3,10 +3,10 @@ from util.vision_util import process_vision_info
 from pprint import pprint
 import torch
 
-model_dir = "train_output_v2/20241003183841"
+model_dir = "/home/admin/finetune-Qwen2-VL/train_output_v2/20241004162153"
 model = Qwen2VLForConditionalGeneration.from_pretrained(
     model_dir, device_map="auto", torch_dtype=torch.bfloat16,
-    attn_implementation="flash_attention_2"
+    attn_implementation="flash_attention_2", adapter_name='adapter_model'
 )
 
 # We recommend enabling flash_attention_2 for better acceleration and memory saving, especially in multi-image and video scenarios.
@@ -26,7 +26,7 @@ processor = AutoProcessor.from_pretrained(model_dir, padding_side="left")
 # processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct", min_pixels=min_pixels, max_pixels=max_pixels)
 
 
-messages1 = [
+messages14 = [
     {
         "role": "user",
         "content": [
@@ -56,7 +56,43 @@ messages3 = [
         "content": [
             {
                 "type": "image",
-                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/4.jpg",
+                "image": "/home/admin/finetune-Qwen2-VL/M2_GB/M2_GB_7.png",
+            },
+            {"type": "text", "text": "What would you caption the character in this picture?"},
+        ],
+    }
+]
+messages13 = [
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "image",
+                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/13.jpg",
+            },
+            {"type": "text", "text": "What would you caption the character in this picture?"},
+        ],
+    }
+]
+messages12 = [
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "image",
+                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/12.jpg",
+            },
+            {"type": "text", "text": "What would you caption the character in this picture?"},
+        ],
+    }
+]
+messages10 = [
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "image",
+                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/10.jpg",
             },
             {"type": "text", "text": "What would you caption the character in this picture?"},
         ],
@@ -76,37 +112,9 @@ messages3 = [
 #         ],
 #     }
 # ]
-# messages2 = [
-#     {
-#         "role": "user",
-#         "content": [
-#             {
-#                 "type": "image",
-#                 "image": "test_data/1.png",
-#             },
-#             {"type": "text", "text": "What kind of chess pieces in this picture?"},
-#         ],
-#     }
-# ]
-#
-# messages3 = [
-#     {
-#         "role": "user",
-#         "content": [
-#             {
-#                 "type": "image",
-#                 "image": "test_data/2.png",
-#             },
-#             {"type": "text", "text": "What kind of chess pieces in this picture?"},
-#         ],
-#     }
-# ]
-# Preparation for inference
-# text = processor.apply_chat_template(
-#     messages, tokenize=False, add_generation_prompt=True
-# )
 
-messages = [messages1, messages2, messages3]
+# messages = [messages3, messages12, messages13, messages14]
+messages = [messages3]
 texts = [
     processor.apply_chat_template(msg, tokenize=False, add_generation_prompt=True)
     for msg in messages
