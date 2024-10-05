@@ -1,4 +1,4 @@
-# Fine-tuning Qwen2-VL-2B
+# Fine-tuning Qwen2-VL-7B and Qwen2-VL-2B
 
 ### News/Updates
 * 2024/10/3
