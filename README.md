@@ -1,7 +1,9 @@
 # Fine-tuning Qwen2-VL-2B
-**[这个文档的中文版](README.zh.md)**
 
 ### News/Updates
+* 2024/10/3
+  * Support Qwenvl 7B QLora
+  * Support huggingface dataset
 * 2024/09/25 
   * Use torchvision.io.VideoReader instead of torchvision.io.read_video to read video. torchvision.io.read_video sometimes is very very slow and maybe 200x times slower than torchvision.io.VideoReader. See [how_to_read_video_faster.ipynb](how_to_read_video_faster.ipynb)
   * Refine comments in the code.
@@ -81,21 +83,6 @@ Our fine-tuned Qwen2-VL 2B model describes the result as follows:
 This picture shows a man in a formal suit. He is wearing a gray suit jacket and a blue tie, with his hands crossed in front of his chest, looking very confident and professional. The background is a white wall with a red and black logo that reads "KING". The overall atmosphere is very formal and professional.
 ```
 
-Another picture:
-<img src="test_data/5.png" width="70%" height="70%">   
-
-The official Qwen2-VL 2B model describes the result as follows:
-```
-This picture shows the interface of a Chinese search engine, specifically the "Youdao" search engine. The top of the page shows the search box and search tips, with "beach" entered in the search box and the "English-Chinese" option selected. The search results list words and phrases related to "beach", including:  
- 1. beach - beach, seaside; v. to pull (a boat) ashore; to run aground; (for anglers) to fish.   
- 2. beaches - beaches, seafront (plural of beach)   
- 3. beachhead - n. [military] beach
- ```
-Our fine-tuned Qwen2-VL 2B model describes the result as follows:
-```
-This picture shows the interface of a Chinese search engine, specifically the "Youdao" search results page. The top of the page shows the "Youdao" logo and English name. There is a blue rectangular box in the middle of the page, which shows the translation and related vocabulary of the word "beach".
-In the blue box, there are three related words: beach, beaches, and beachhead. Each word has a corresponding English explanation and usage description. For example, "beach" means beach, seaside; "beaches" means beaches, seafront (plural form of beach);  
- ```
 
 Overall, the fine-tuned model seems to have not been greatly affected in performance. The following picture is a log file during the fine-tuning process.
 <img src="readme_imgs/2.png" width="100%" height="70%">   

@@ -56,7 +56,7 @@ messages3 = [
         "content": [
             {
                 "type": "image",
-                "image": "/home/admin/finetune-Qwen2-VL/M2_GB/M2_GB_7.png",
+                "image": "/home/admin/finetune-Qwen2-VL/M2_GB/M2_GB_36.png",
             },
             {"type": "text", "text": "What would you caption the character in this picture?"},
         ],
