@@ -24,9 +24,6 @@ Qwen2-VL is great, and many people believe they want to continue train or fine-t
 
 Note: Qwen team provided a method for fine-tuning Qwen2-VL using the LLaMA-Factory approach. I tried it and found that LLaMA-Factory is a bit heavy, with many concepts, even a bit redundant. I personally prefer simple and transparent code, so I wrote a fine-tuning code script for Qwen2-VL, hoping to help anyone who like to write their own training loops.  
 
-I have a WeChat subscription account "Backpropagation", where I occasionally write some technical articles, including this one ( https://mp.weixin.qq.com/s/mN9Pxpd2Wciw1-IAoFc08A ), welcome to follow.
-<img src="readme_imgs/3.jpg" width="20%" height="20%"> 
-
 ### Quick Start for Fine-tuning or continue pre-train Qwen2-VL 2B Model
 ---
 
