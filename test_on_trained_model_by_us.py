@@ -26,30 +26,6 @@ processor = AutoProcessor.from_pretrained(model_dir, padding_side="left")
 # processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct", min_pixels=min_pixels, max_pixels=max_pixels)
 
 
-messages14 = [
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "image",
-                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/14.jpg",
-            },
-            {"type": "text", "text": "What would you caption the character in this picture?"},
-        ],
-    }
-]
-messages2 = [
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "image",
-                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/2.jpg",
-            },
-            {"type": "text", "text": "What would you caption the character in this picture?"},
-        ],
-    }
-]
 messages3 = [
     {
         "role": "user",
@@ -57,42 +33,6 @@ messages3 = [
             {
                 "type": "image",
                 "image": "/home/admin/finetune-Qwen2-VL/M2_GB/M2_GB_36.png",
-            },
-            {"type": "text", "text": "What would you caption the character in this picture?"},
-        ],
-    }
-]
-messages13 = [
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "image",
-                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/13.jpg",
-            },
-            {"type": "text", "text": "What would you caption the character in this picture?"},
-        ],
-    }
-]
-messages12 = [
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "image",
-                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/12.jpg",
-            },
-            {"type": "text", "text": "What would you caption the character in this picture?"},
-        ],
-    }
-]
-messages10 = [
-    {
-        "role": "user",
-        "content": [
-            {
-                "type": "image",
-                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/10.jpg",
             },
             {"type": "text", "text": "What would you caption the character in this picture?"},
         ],
