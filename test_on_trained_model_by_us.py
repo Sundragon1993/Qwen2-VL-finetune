@@ -3,7 +3,7 @@ from util.vision_util import process_vision_info
 from pprint import pprint
 import torch
 
-model_dir = "/home/admin/finetune-Qwen2-VL/train_output_v2/20241004162153"
+model_dir = "/home/admin/finetune-Qwen2-VL/train_output_v2/20241007174723"
 model = Qwen2VLForConditionalGeneration.from_pretrained(
     model_dir, device_map="auto", torch_dtype=torch.bfloat16,
     attn_implementation="flash_attention_2", adapter_name='adapter_model'
@@ -32,7 +32,7 @@ messages3 = [
         "content": [
             {
                 "type": "image",
-                "image": "/home/admin/finetune-Qwen2-VL/M2_GB/M2_GB_36.png",
+                "image": "/home/admin/finetune-Qwen2-VL/ezio_auditore/2.jpg",
             },
             {"type": "text", "text": "What would you caption the character in this picture?"},
         ],

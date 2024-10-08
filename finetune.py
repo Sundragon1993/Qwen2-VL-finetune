@@ -282,7 +282,7 @@ def train():
     # transformers/models/qwen2_vl/modeling_qwen2_vl.py: causal_mask = AttentionMaskConverter._unmask_unattended(causal_mask, min_dtype)
 
     processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct", min_pixels=256 * 28 * 28,
-                                              max_pixels=512 * 28 * 28, padding_side="right")
+                                              max_pixels=768 * 28 * 28, padding_side="right")
 
     # train_loader = DataLoader(
     #     ToyDataSet("test_data/data.json"),
@@ -304,7 +304,7 @@ def train():
     # import pdb
     # pdb.set_trace()
     optimizer = AdamW(peft_model.parameters(), lr=1e-5)
-    NUM_ACCUMULATION_STEPS = 2
+    NUM_ACCUMULATION_STEPS = 4
     for epoch in range(epochs):
         accumulated_avg_loss = 0
         steps = 0

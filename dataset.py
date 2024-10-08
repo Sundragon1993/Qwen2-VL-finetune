@@ -18,9 +18,6 @@ class ToyDataSet(Dataset):  # for toy demo
         return self.data[idx]
 
 
-
-
-
 class HuggingFaceDataset(torch.utils.data.Dataset):
     def __init__(self, split):
         data = load_dataset("Trelis/chess_pieces")
@@ -94,7 +91,7 @@ class LocalDataset(Dataset):
             "messages": [
                 {'role': 'user', 'content': [{'type': 'image', 'image': img_path},
                                              {'type': 'text',
-                                              'text': 'What would you caption the character in this picture?'}]},
+                                              'text': 'Describe the character’s position and the camera angle relative to the character. Include whether the shot is from the front, rear, left, or right side. Additionally, specify if the camera is at a high, low, or mid level, and mention whether it captures a close-up, mid shot, or full body view'}]},
                 {'role': 'assistant', 'content': [{'type': 'text', 'text': caption}]}
             ]
         }

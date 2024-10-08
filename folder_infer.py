@@ -3,6 +3,7 @@ from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 from util.vision_util import process_vision_info
 import torch
 from pprint import pprint
+from tqdm import tqdm
 
 
 class QwenVLModel:
@@ -15,7 +16,7 @@ class QwenVLModel:
         """
         self.model = Qwen2VLForConditionalGeneration.from_pretrained(
             model_dir, device_map="auto", torch_dtype=torch.bfloat16,
-            attn_implementation="flash_attention_2", adapter_name='adapter_model'
+            attn_implementation="flash_attention_2"
         )
         self.processor = AutoProcessor.from_pretrained(model_dir, padding_side="left")
 
@@ -88,11 +89,16 @@ class QwenVLModel:
 
 
 def main():
-    model_dir = "/home/admin/finetune-Qwen2-VL/train_output_v2/20241004162153"
+    model_dir = "/home/admin/finetune-Qwen2-VL/train_output_v2/20241007174723"
     qwen_model = QwenVLModel(model_dir)
 
-    image_folder = "/home/admin/finetune-Qwen2-VL/M2_GB"
+    # image_folder = "/home/admin/finetune-Qwen2-VL/M2_GB"
+    image_folder = "/home/admin/finetune-Qwen2-VL/karuga"
     qwen_model.process_folder(image_folder)
+    # subfolders = [f.path for f in os.scandir(image_folder) if f.is_dir()]
+    # for s in tqdm(subfolders):
+    #     print(f'processing folder: {s}')
+    #     qwen_model.process_folder(s)
 
 
 if __name__ == "__main__":
